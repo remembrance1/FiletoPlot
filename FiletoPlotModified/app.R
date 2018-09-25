@@ -1,49 +1,49 @@
 library(shiny)
+library(shinyjs)
 
-#data
-df <- iris
-
-#ui
-ui <- fluidPage(
-  sidebarPanel(
-    checkboxGroupInput(inputId = "Question",
-                       label = "Choose the plots",
-                       choices = c("Plot1", "Plot2", "Plot3"),
-                       selected = "")),
-  mainPanel(
-    uiOutput('ui_plot') 
+ui = fluidPage(
+  useShinyjs(),
+  titlePanel("Plot1 or Plot2?"),
+  sidebarLayout(
+    sidebarPanel(
+      checkboxGroupInput("my_choices", "Plot1 or Plot2",choices = c("Plot1", "Plot2"), selected = "Plot1"),width=2),
+    mainPanel(
+      plotOutput("plot1"),
+      plotOutput("plot2")
+    )
   )
 )
 
-#server
-server <- function(input, output)
-{
-  # gen plot containers
-  output$ui_plot <- renderUI({ 
-    out <- list()
-    if (length(input$Question)==0){return(NULL)}
-    for (i in 1:length(input$Question)){
-      out[[i]] <-  plotOutput(outputId = paste0("plot",i))
-    }  
-    return(out) 
-  })
+server = function(input, output,session) {
   
-  # render plots
-  observe({  
-    for (i in 1:3){  
-      local({  #because expressions are evaluated at app init
-        ii <- i 
-        output[[paste0('plot',ii)]] <- renderPlot({ 
-          if (length(input$Question) > ii-1 ){  
-            return(plot(runif(100)))
-          } 
-          NULL
-        })
-      })
-    }                                  
+  # hide plots on start
+  hide("plot1");hide("plot2")
+  
+  output$plot1 <- renderPlot({plot(iris)})
+  output$plot2 <- renderPlot({plot(mtcars)})
+  
+  observeEvent(input$my_choices,{
     
-  })
-  
+    if(is.null(input$my_choices)){
+      hide("plot1"); hide("plot2")
+    }
+    
+    else if(length(input$my_choices) == 1){
+      if(input$my_choices == "Plot1"){
+        show("plot1");hide("plot2")
+      }
+      if(input$my_choices == "Plot2"){
+        hide("plot1");show("plot2")
+      }
+    }
+    
+    else{
+      
+      if(all(c("Plot1","Plot2") %in% input$my_choices)){
+        show("plot1");show("plot2")
+      }
+    }
+  },ignoreNULL = F)
 }
 
 shinyApp(ui, server)
