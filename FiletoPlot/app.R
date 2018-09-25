@@ -1,4 +1,3 @@
-#improved to add in ggplot2
 library(shiny)
 library(ggplot2)
 
@@ -36,20 +35,27 @@ ui <- fluidPage(
       #implementing dropdown column 
       selectInput('xcol', 'X Variable', ""),
       selectInput('ycol', 'Y Variable', "", selected = ""),
-      selectInput('color', 'Colour', "", selected = "")),
+      selectInput('color', 'Colour', "", selected = ""),
+      
+      tags$hr(),
+      
+      checkboxGroupInput("my_choices", "Plots to Display",
+                         choices = c("Scatterplot", "CorrMat"), selected = "")
+      
+      ),
     
     # Show a plot of the generated distribution
     mainPanel(
       # Output: Data file ----
-      plotOutput('MyPlot')
+      plotOutput('Scatterplot'), #need to add in more plots into the UI
+      plotOutput('CorrMat')
     )
   )
 )
 
-# Define server logic required to draw a histogram
-server <- shinyServer(function(input, output, session) {
+# Define server logic 
+server <- function(input, output, session) {
   # added "session" because updateSelectInput requires it
-  
   
   data <- reactive({ 
     req(input$file1) ## ?req #  require that the input is available
@@ -77,11 +83,43 @@ server <- shinyServer(function(input, output, session) {
     return(df)
   })
   
-  output$MyPlot <- renderPlot({
+  # hide plots on start
+  hide("Scatterplot");hide("CorrMat")
+  
+  output$Scatterplot <- renderPlot({
     ggplot(data = data(), aes_string(x = input$xcol, y = input$ycol, colour = input$color)) + 
       geom_point() +
       theme_bw()
   })
-})
+  
+  output$CorrMat <- renderPlot({
+    ggplot(data = data(), aes_string(x = input$xcol, y = input$ycol, colour = input$color)) + 
+      geom_point() +
+      theme_bw()
+  })
+
+  observeEvent(input$my_choices,{
+    
+    if(is.null(input$my_choices)){
+      hide("Scatterplot"); hide("CorrMat")
+    }
+    
+    else if(length(input$my_choices) == 1){
+      if(input$my_choices == "Scatterplot"){
+        show("Scatterplot");hide("CorrMat")
+      }
+      if(input$my_choices == "CorrMat"){
+        hide("Scatterplot");show("CorrMat")
+      }
+    }
+    
+    else{
+      
+      if(all(c("Scatterplot","CorrMat") %in% input$my_choices)){
+        show("Scatterplot");show("CorrMat")
+      }
+    }
+  },ignoreNULL = F)
+}
 
 shinyApp(ui, server)
