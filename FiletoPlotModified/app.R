@@ -1,46 +1,118 @@
 library(shiny)
+library(ggplot2)
 library(shinyjs)
 
-ui = fluidPage(
+# Define UI for application that draws a histogram
+ui <- fluidPage(
+  
   useShinyjs(),
-  titlePanel("Plot1 or Plot2?"),
+  # Application title
+  titlePanel("File to Plot"),
+  
+  # Sidebar with a slider input for number of bins 
   sidebarLayout(
     sidebarPanel(
-      checkboxGroupInput("my_choices", "Plot1 or Plot2",choices = c("Plot1", "Plot2"), selected = "Plot1"),width=2),
+      
+      # Input: Select a file ----
+      fileInput('file1', 'Choose CSV File',
+                accept=c('text/csv', 
+                         'text/comma-separated-values,text/plain', 
+                         '.csv')),
+      
+      # Horizontal line ----
+      tags$hr(),
+      
+      checkboxInput('header', 'Header', TRUE),
+      radioButtons('sep', 'Separator',
+                   c(Comma=',',
+                     Semicolon=';',
+                     Tab='\t'),
+                   ','),
+      radioButtons('quote', 'Quote',
+                   c(None='',
+                     'Double Quote'='"',
+                     'Single Quote'="'"),
+                   '"'),
+      
+      #implementing dropdown column 
+      selectInput('xcol', 'X Variable', ""),
+      selectInput('ycol', 'Y Variable', "", selected = ""),
+      selectInput('color', 'Colour', "", selected = ""),
+      
+      tags$hr(),
+      
+      checkboxGroupInput("my_choices", "Plots to Display",
+                         choices = c("Scatterplot", "CorrMat"), selected = "Scatterplot")
+      
+    ),
+    
+    # Show a plot of the generated distribution
     mainPanel(
-      plotOutput("plot1"),
-      plotOutput("plot2")
+      # Output: Data file ----
+      plotOutput('Scatterplot'), #need to add in more plots into the UI
+      plotOutput('CorrMat')
     )
   )
 )
 
-server = function(input, output,session) {
+# Define server logic 
+server <- function(input, output, session) {
+  # added "session" because updateSelectInput requires it
+  
+  data <- reactive({ 
+    req(input$file1) ## ?req #  require that the input is available
+    
+    inFile <- input$file1 
+    
+    # tested with a following dataset: write.csv(mtcars, "mtcars.csv")
+    # and                              write.csv(iris, "iris.csv")
+    df <- read.csv(inFile$datapath, header = input$header, sep = input$sep,
+                   quote = input$quote)
+    
+    updateSelectInput(session, inputId = 'xcol', label = 'X Variable',
+                      choices = names(df), selected = names(df))
+    updateSelectInput(session, inputId = 'ycol', label = 'Y Variable',
+                      choices = names(df), selected = names(df)[2])
+    updateSelectInput(session, inputId = 'color', label = 'Colour',
+                      choices = names(df), selected = names(df)[3])
+    
+    return(df)
+  })
   
   # hide plots on start
-  hide("plot1");hide("plot2")
+  hide("Scatterplot");hide("CorrMat")
   
-  output$plot1 <- renderPlot({plot(iris)})
-  output$plot2 <- renderPlot({plot(mtcars)})
+  output$Scatterplot <- renderPlot({
+    ggplot(data = data(), aes_string(x = input$xcol, y = input$ycol, colour = input$color)) + 
+      geom_point() +
+      theme_bw()
+  })
+  
+  output$CorrMat <- renderPlot({
+    ggplot(data = data(), aes_string(x = input$xcol, y = input$ycol, colour = input$color)) + 
+      geom_point() +
+      theme_bw()
+  })
   
   observeEvent(input$my_choices,{
     
     if(is.null(input$my_choices)){
-      hide("plot1"); hide("plot2")
+      hide("Scatterplot"); hide("CorrMat")
     }
     
     else if(length(input$my_choices) == 1){
-      if(input$my_choices == "Plot1"){
-        show("plot1");hide("plot2")
+      if(input$my_choices == "Scatterplot"){
+        show("Scatterplot");hide("CorrMat")
       }
-      if(input$my_choices == "Plot2"){
-        hide("plot1");show("plot2")
+      if(input$my_choices == "CorrMat"){
+        hide("Scatterplot");show("CorrMat")
       }
     }
     
     else{
       
-      if(all(c("Plot1","Plot2") %in% input$my_choices)){
-        show("plot1");show("plot2")
+      if(all(c("Scatterplot","CorrMat") %in% input$my_choices)){
+        show("Scatterplot");show("CorrMat")
       }
     }
   },ignoreNULL = F)
