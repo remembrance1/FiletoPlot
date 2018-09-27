@@ -94,8 +94,8 @@ server <- function(input, output, session) {
   })
   
   output$CorrMat <- renderPlot({
-    #need to change it to numeric, by dropping those columns that are non-numeric...
-    corr <- cor(data(), use="complete", method="pearson")
+    #columns that are non-numeric are immediately dropped
+    corr <- cor(Filter(is.numeric, data()), use="complete", method="pearson")
     corrplot(corr, method="circle", sig.level = 0.0000112, type="upper", 
              tl.cex = 1, tl.col="black", order="hclust", col=brewer.pal(n=8, name="RdYlBu"))
   })
