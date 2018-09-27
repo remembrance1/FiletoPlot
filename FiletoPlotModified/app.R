@@ -1,6 +1,8 @@
 library(shiny)
 library(ggplot2)
 library(shinyjs)
+library(RColorBrewer)
+library(corrplot)
 
 # Define UI for application that draws a histogram
 ui <- fluidPage(
@@ -85,13 +87,16 @@ server <- function(input, output, session) {
   output$Scatterplot <- renderPlot({
     ggplot(data = data(), aes_string(x = input$xcol, y = input$ycol, colour = input$color)) + 
       geom_point() +
-      theme_bw()
+      ggtitle("Scatterplot") +
+      theme_bw() + 
+      theme(plot.title = element_text(size = 20, face = "bold"))
   })
   
   output$CorrMat <- renderPlot({
-    ggplot(data = data(), aes_string(x = input$xcol, y = input$ycol, colour = input$color)) + 
-      geom_point() +
-      theme_bw()
+    #need to change it to numeric, by dropping those columns that are non-numeric...
+    corr <- cor(data(), use="complete", method="pearson")
+    corrplot(corr, method="circle", sig.level = 0.0000112, type="upper", 
+             tl.cex = 1, tl.col="black", order="hclust", col=brewer.pal(n=8, name="RdYlBu"))
   })
   
   observeEvent(input$my_choices,{
