@@ -25,6 +25,7 @@ ui <- fluidPage(
       tags$hr(),
       
       checkboxInput('header', 'Header', TRUE),
+      checkboxInput('nonnum', 'Drop Non-Numeric', FALSE),
       radioButtons('sep', 'Separator',
                    c(Comma=',',
                      Semicolon=';',
